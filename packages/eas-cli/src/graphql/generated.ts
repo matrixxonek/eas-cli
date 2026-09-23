@@ -1101,6 +1101,8 @@ export type AgentDeviceRunSessionRemoteConfig = {
    * session does not use local egress.
    */
   egressUrl?: Maybe<Scalars['String']['output']>;
+  /** URL of the preview server, for reaching its API rather than its page. */
+  previewApiUrl?: Maybe<Scalars['String']['output']>;
   /** Session token gating the web preview. Null when the preview runs ungated. */
   webPreviewToken?: Maybe<Scalars['String']['output']>;
   /**
@@ -2947,6 +2949,8 @@ export type AppObserveErrorOccurrencesFilter = {
   appEasBuildId?: InputMaybe<Scalars['String']['input']>;
   appUpdateId?: InputMaybe<Scalars['String']['input']>;
   appVersion?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  deviceModel?: InputMaybe<Scalars['String']['input']>;
   easClientId?: InputMaybe<Scalars['String']['input']>;
   endTime?: InputMaybe<Scalars['DateTime']['input']>;
   environment?: InputMaybe<Scalars['String']['input']>;
@@ -3129,6 +3133,8 @@ export type AppObserveErrorsBreakdownInput = {
   appEasBuildId?: InputMaybe<Scalars['String']['input']>;
   appUpdateId?: InputMaybe<Scalars['String']['input']>;
   appVersion?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  deviceModel?: InputMaybe<Scalars['String']['input']>;
   dimension: AppObserveErrorBreakdownDimension;
   endTime: Scalars['DateTime']['input'];
   environment?: InputMaybe<Scalars['String']['input']>;
@@ -3148,6 +3154,8 @@ export type AppObserveErrorsGroupsInput = {
   appVersion?: InputMaybe<Scalars['String']['input']>;
   /** Bucket size for each group's timeSeries. Defaults to daily. */
   bucketIntervalMinutes?: InputMaybe<Scalars['Int']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  deviceModel?: InputMaybe<Scalars['String']['input']>;
   endTime: Scalars['DateTime']['input'];
   environment?: InputMaybe<Scalars['String']['input']>;
   /** Restrict to one error group. */
@@ -3168,6 +3176,8 @@ export type AppObserveErrorsStatsInput = {
   appEasBuildId?: InputMaybe<Scalars['String']['input']>;
   appUpdateId?: InputMaybe<Scalars['String']['input']>;
   appVersion?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  deviceModel?: InputMaybe<Scalars['String']['input']>;
   endTime: Scalars['DateTime']['input'];
   environment?: InputMaybe<Scalars['String']['input']>;
   isEmbeddedUpdate?: InputMaybe<Scalars['Boolean']['input']>;
@@ -3184,6 +3194,8 @@ export type AppObserveErrorsTimeSeriesInput = {
   appUpdateId?: InputMaybe<Scalars['String']['input']>;
   appVersion?: InputMaybe<Scalars['String']['input']>;
   bucketIntervalMinutes?: InputMaybe<Scalars['Int']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  deviceModel?: InputMaybe<Scalars['String']['input']>;
   endTime: Scalars['DateTime']['input'];
   environment?: InputMaybe<Scalars['String']['input']>;
   /** Restrict to one error group. */
@@ -3639,7 +3651,8 @@ export type AppObserveOverviewEngagementInput = {
 
 export type AppObserveOverviewEngagementStat = {
   __typename?: 'AppObserveOverviewEngagementStat';
-  previousPeriodTotal: Scalars['Int']['output'];
+  /** Total for the equal-length window before startTime. Null when the window is longer than 45 days, since the previous period would fall outside the 90-day retention. */
+  previousPeriodTotal?: Maybe<Scalars['Int']['output']>;
   /** Per-bucket approximate uniques; buckets do not sum to `total`. */
   series: Array<AppObserveOverviewEngagementBucket>;
   total: Scalars['Int']['output'];
@@ -3655,12 +3668,13 @@ export type AppObserveOverviewStability = {
   crashFreeUsers: Scalars['Float']['output'];
   /** Distinct users that hit a fatal error in range. */
   crashedUsers: Scalars['Int']['output'];
-  /** Fatal exception events in the equal-length window before startTime. */
-  previousPeriodCrashCount: Scalars['Int']['output'];
-  /** Same fractions for the equal-length window before startTime; null when it had no activity. */
+  /** Fatal exception events in the equal-length window before startTime. Null when the window is longer than 45 days. */
+  previousPeriodCrashCount?: Maybe<Scalars['Int']['output']>;
+  /** Same fractions for the equal-length window before startTime; null when it had no activity, or when the window is longer than 45 days and the previous period falls outside the 90-day retention. */
   previousPeriodCrashFreeSessions?: Maybe<Scalars['Float']['output']>;
   previousPeriodCrashFreeUsers?: Maybe<Scalars['Float']['output']>;
-  previousPeriodCrashedUsers: Scalars['Int']['output'];
+  /** Null when the window is longer than 45 days. */
+  previousPeriodCrashedUsers?: Maybe<Scalars['Int']['output']>;
   series: Array<AppObserveOverviewStabilityBucket>;
   /** All exception events in range, for distinguishing quiet apps from crash-free ones. */
   totalErrors: Scalars['Int']['output'];
@@ -4126,6 +4140,8 @@ export enum AppObserveUserEventListOrderByField {
 export type AppObserveUserEventName = {
   __typename?: 'AppObserveUserEventName';
   count: Scalars['Int']['output'];
+  firstSeenAt: Scalars['DateTime']['output'];
+  lastSeenAt: Scalars['DateTime']['output'];
   name: Scalars['String']['output'];
 };
 
@@ -4156,6 +4172,8 @@ export type AppObserveUserEventNamesOrderBy = {
 
 export enum AppObserveUserEventNamesOrderByField {
   Count = 'COUNT',
+  FirstSeen = 'FIRST_SEEN',
+  LastSeen = 'LAST_SEEN',
   Name = 'NAME'
 }
 
@@ -4713,6 +4731,8 @@ export type AppiumRunSessionRemoteConfig = {
    * session does not use local egress.
    */
   egressUrl?: Maybe<Scalars['String']['output']>;
+  /** URL of the preview server, for reaching its API rather than its page. */
+  previewApiUrl?: Maybe<Scalars['String']['output']>;
   /** Session token gating the web preview. Null when the preview runs ungated. */
   webPreviewToken?: Maybe<Scalars['String']['output']>;
   /**
@@ -5141,6 +5161,8 @@ export type ArgentRunSessionRemoteConfig = {
    * session does not use local egress.
    */
   egressUrl?: Maybe<Scalars['String']['output']>;
+  /** URL of the preview server, for reaching its API rather than its page. */
+  previewApiUrl?: Maybe<Scalars['String']['output']>;
   toolsAuthToken?: Maybe<Scalars['String']['output']>;
   toolsUrl: Scalars['String']['output'];
   /** Session token gating the web preview. Null when the preview runs ungated. */
@@ -5677,12 +5699,14 @@ export type BuildFilterInput = {
   channel?: InputMaybe<Scalars['String']['input']>;
   developmentClient?: InputMaybe<Scalars['Boolean']['input']>;
   distributions?: InputMaybe<Array<DistributionType>>;
+  expired?: InputMaybe<Scalars['Boolean']['input']>;
   fingerprintHash?: InputMaybe<Scalars['String']['input']>;
   hasFingerprint?: InputMaybe<Scalars['Boolean']['input']>;
   platforms?: InputMaybe<Array<AppPlatform>>;
   releaseChannel?: InputMaybe<Scalars['String']['input']>;
   runtimeVersion?: InputMaybe<Scalars['String']['input']>;
   simulator?: InputMaybe<Scalars['Boolean']['input']>;
+  statuses?: InputMaybe<Array<BuildStatus>>;
 };
 
 export enum BuildIosEnterpriseProvisioning {
@@ -6581,6 +6605,14 @@ export type CreatePostHogDeepLinkInput = {
   posthogOrganizationConnectionId: Scalars['ID']['input'];
   /** Which EAS surface opened the link; omitted lets PostHog apply its own default. */
   purpose?: InputMaybe<PostHogDeepLinkPurpose>;
+};
+
+export type CreateSandboxInput = {
+  appId: Scalars['ID']['input'];
+  image?: InputMaybe<Scalars['String']['input']>;
+  operatingSystem: SandboxOperatingSystem;
+  projectArchive?: InputMaybe<SandboxProjectArchiveInput>;
+  resourceClass: SandboxResourceClass;
 };
 
 export type CreateSentryProjectInput = {
@@ -10115,6 +10147,7 @@ export enum Permission {
   Admin = 'ADMIN',
   Own = 'OWN',
   Publish = 'PUBLISH',
+  PublishProtected = 'PUBLISH_PROTECTED',
   View = 'VIEW'
 }
 
@@ -10268,7 +10301,6 @@ export type ProjectArchiveSourceInput = {
   bucketKey?: InputMaybe<Scalars['String']['input']>;
   gitRef?: InputMaybe<Scalars['String']['input']>;
   metadataLocation?: InputMaybe<Scalars['String']['input']>;
-  repositoryUrl?: InputMaybe<Scalars['String']['input']>;
   type: ProjectArchiveSourceType;
   url?: InputMaybe<Scalars['String']['input']>;
 };
@@ -10323,6 +10355,7 @@ export type PublishUpdateGroupInput = {
   isGitWorkingTreeDirty?: InputMaybe<Scalars['Boolean']['input']>;
   manifestHostOverride?: InputMaybe<Scalars['String']['input']>;
   message?: InputMaybe<Scalars['String']['input']>;
+  previousRolloutUpdateToClobberIdGroup?: InputMaybe<UpdateIdGroup>;
   rollBackToEmbeddedInfoGroup?: InputMaybe<UpdateRollBackToEmbeddedGroup>;
   rolloutInfoGroup?: InputMaybe<UpdateRolloutInfoGroup>;
   runtimeVersion: Scalars['String']['input'];
@@ -10522,6 +10555,7 @@ export enum Role {
   HasAdmin = 'HAS_ADMIN',
   NotAdmin = 'NOT_ADMIN',
   Owner = 'OWNER',
+  ReleaseManager = 'RELEASE_MANAGER',
   ViewOnly = 'VIEW_ONLY'
 }
 
@@ -10648,6 +10682,7 @@ export type RootMutation = {
   realtimeLogs: RealtimeLogsMutation;
   /** Mutations that create, update, and delete Robots */
   robot: RobotMutation;
+  sandbox: SandboxMutation;
   /** Mutations for Sentry installations */
   sentryInstallation: SentryInstallationMutation;
   /** Mutations for Sentry projects */
@@ -10663,6 +10698,7 @@ export type RootMutation = {
   updateBranch: UpdateBranchMutation;
   updateChannel: UpdateChannelMutation;
   uploadSession: UploadSession;
+  usageBudget: UsageBudgetMutation;
   /** Mutations that create, update, and delete pinned apps */
   userAppPins: UserAppPinMutation;
   userAuditLog: UserAuditLogMutation;
@@ -10793,6 +10829,7 @@ export type RootQuery = {
   posthogIntegration: PostHogIntegrationQuery;
   /** Top-level query object for querying Runtimes. */
   runtimes: RuntimeQuery;
+  sandboxes: SandboxQuery;
   snack: SnackQuery;
   /** Top-level query object for querying Expo status page services. */
   statuspageService: StatuspageServiceQuery;
@@ -11037,6 +11074,107 @@ export type SsoUserDataInput = {
   lastName?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type Sandbox = {
+  __typename?: 'Sandbox';
+  app: App;
+  createdAt: Scalars['DateTime']['output'];
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  lastUsedAt: Scalars['DateTime']['output'];
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: SandboxStatus;
+  turtleJobRun: JobRun;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type SandboxConnection = {
+  __typename?: 'SandboxConnection';
+  edges: Array<SandboxEdge>;
+  pageInfo: PageInfo;
+};
+
+export type SandboxEdge = {
+  __typename?: 'SandboxEdge';
+  cursor: Scalars['String']['output'];
+  node: Sandbox;
+};
+
+export type SandboxFilterInput = {
+  statuses?: InputMaybe<Array<SandboxStatus>>;
+};
+
+export type SandboxMutation = {
+  __typename?: 'SandboxMutation';
+  createSandbox: Sandbox;
+  markSandboxReady: Sandbox;
+  stopSandbox: Sandbox;
+  touchSandbox: Sandbox;
+};
+
+
+export type SandboxMutation_CreateSandboxArgs = {
+  input: CreateSandboxInput;
+};
+
+
+export type SandboxMutation_MarkSandboxReadyArgs = {
+  sandboxId: Scalars['ID']['input'];
+};
+
+
+export type SandboxMutation_StopSandboxArgs = {
+  sandboxId: Scalars['ID']['input'];
+};
+
+
+export type SandboxMutation_TouchSandboxArgs = {
+  sandboxId: Scalars['ID']['input'];
+};
+
+export enum SandboxOperatingSystem {
+  Linux = 'LINUX',
+  Macos = 'MACOS'
+}
+
+export type SandboxProjectArchiveInput = {
+  gitRef?: InputMaybe<Scalars['String']['input']>;
+  url?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type SandboxQuery = {
+  __typename?: 'SandboxQuery';
+  /** Project sandboxes, newest first. An omitted or empty status filter includes all statuses. */
+  byAppIdPaginated: SandboxConnection;
+  byId: Sandbox;
+};
+
+
+export type SandboxQuery_ByAppIdPaginatedArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  appId: Scalars['ID']['input'];
+  before?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<SandboxFilterInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SandboxQuery_ByIdArgs = {
+  sandboxId: Scalars['ID']['input'];
+};
+
+export enum SandboxResourceClass {
+  Large = 'LARGE',
+  Medium = 'MEDIUM'
+}
+
+export enum SandboxStatus {
+  Errored = 'ERRORED',
+  Running = 'RUNNING',
+  Starting = 'STARTING',
+  Stopped = 'STOPPED'
+}
+
 export type SecondFactorBooleanResult = {
   __typename?: 'SecondFactorBooleanResult';
   success: Scalars['Boolean']['output'];
@@ -11176,6 +11314,8 @@ export type ServeSimRunSessionRemoteConfig = {
    * session does not use local egress.
    */
   egressUrl?: Maybe<Scalars['String']['output']>;
+  /** URL of the preview server, for reaching its API rather than its page. */
+  previewApiUrl?: Maybe<Scalars['String']['output']>;
   /** Session token gating the preview. Null when the preview runs ungated. */
   previewToken?: Maybe<Scalars['String']['output']>;
   previewUrl: Scalars['String']['output'];
@@ -11546,6 +11686,35 @@ export type SubscriptionDetails_PlanEnablementArgs = {
   serviceMetric: EasServiceMetric;
 };
 
+/** An unresolved finding from Supabase's Security or Performance Advisor (database linter). */
+export type SupabaseAdvisorLint = {
+  __typename?: 'SupabaseAdvisorLint';
+  /** Stable identifier for this finding on this project. */
+  cacheKey: Scalars['String']['output'];
+  description: Scalars['String']['output'];
+  /** Project-specific explanation naming the affected schema object. */
+  detail: Scalars['String']['output'];
+  /** Affected schema object, e.g. public.todos, when the lint names one. */
+  entity?: Maybe<Scalars['String']['output']>;
+  level: SupabaseAdvisorLintLevel;
+  /** Lint rule identifier, e.g. rls_disabled_in_public. */
+  name: Scalars['String']['output'];
+  /** Link to the remediation guide, when Supabase provides one. */
+  remediation?: Maybe<Scalars['String']['output']>;
+  title: Scalars['String']['output'];
+};
+
+export enum SupabaseAdvisorLintLevel {
+  Error = 'ERROR',
+  Info = 'INFO',
+  Warn = 'WARN'
+}
+
+export enum SupabaseAdvisorType {
+  Performance = 'PERFORMANCE',
+  Security = 'SECURITY'
+}
+
 export type SupabaseConnection = {
   __typename?: 'SupabaseConnection';
   account: Account;
@@ -11622,6 +11791,12 @@ export type SupabaseOrganization = {
 
 export type SupabaseProject = {
   __typename?: 'SupabaseProject';
+  /**
+   * Live unresolved lints from the project's Security or Performance Advisor, ordered by severity.
+   * Readable with view permission; a token refresh triggered by a read is persisted with elevated
+   * privileges. Null when Supabase cannot be reached.
+   */
+  advisorLints?: Maybe<Array<SupabaseAdvisorLint>>;
   app: App;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
@@ -11631,6 +11806,11 @@ export type SupabaseProject = {
   supabaseProjectUrl: Scalars['String']['output'];
   supabaseRegion: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type SupabaseProject_AdvisorLintsArgs = {
+  type: SupabaseAdvisorType;
 };
 
 export type SupabaseProjectMutation = {
@@ -11995,7 +12175,7 @@ export type UpdateChannel = {
   embeddedUpdateCount: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
   isPaused: Scalars['Boolean']['output'];
-  /** Only account admins may release to a protected channel. */
+  /** Only allowed publishers (Release Managers, Admins, Owners) may release to a protected channel. */
   isProtected: Scalars['Boolean']['output'];
   lastDeletionAttemptTime?: Maybe<Scalars['DateTime']['output']>;
   latestRuntimes: ChannelRuntimesConnection;
@@ -12050,7 +12230,7 @@ export type UpdateChannelMutation = {
   editUpdateChannel: UpdateChannel;
   /** Pause updates for an EAS channel. */
   pauseUpdateChannel: UpdateChannel;
-  /** Protect an EAS channel, so only account admins may release to it. */
+  /** Protect an EAS channel, so only allowed publishers (Release Managers, Admins, Owners) may release to it. */
   protectUpdateChannel: UpdateChannel;
   /** Resume updates for an EAS channel. */
   resumeUpdateChannel: UpdateChannel;
@@ -12303,6 +12483,12 @@ export type UpdateGroupsConnection = {
   pageInfo: PageInfo;
 };
 
+export type UpdateIdGroup = {
+  android?: InputMaybe<Scalars['ID']['input']>;
+  ios?: InputMaybe<Scalars['ID']['input']>;
+  web?: InputMaybe<Scalars['ID']['input']>;
+};
+
 export type UpdateInfoGroup = {
   android?: InputMaybe<PartialManifest>;
   ios?: InputMaybe<PartialManifest>;
@@ -12499,6 +12685,31 @@ export enum UploadSessionType {
   EasUpdateAssetsMetadata = 'EAS_UPDATE_ASSETS_METADATA',
   EasUpdateFingerprint = 'EAS_UPDATE_FINGERPRINT'
 }
+
+export type UsageBudget = {
+  __typename?: 'UsageBudget';
+  id: Scalars['ID']['output'];
+  limits: UsageBudgetLimits;
+};
+
+export type UsageBudgetLimits = {
+  __typename?: 'UsageBudgetLimits';
+  builds?: Maybe<Scalars['Int']['output']>;
+};
+
+export type UsageBudgetLimitsInput = {
+  builds?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type UsageBudgetMutation = {
+  __typename?: 'UsageBudgetMutation';
+  createUsageBudget: UsageBudget;
+};
+
+
+export type UsageBudgetMutation_CreateUsageBudgetArgs = {
+  limits: UsageBudgetLimitsInput;
+};
 
 export type UsageMetricTotal = {
   __typename?: 'UsageMetricTotal';
@@ -13259,6 +13470,8 @@ export type WebPreviewOnlyRunSessionRemoteConfig = {
    * session does not use local egress.
    */
   egressUrl?: Maybe<Scalars['String']['output']>;
+  /** URL of the preview server, for reaching its API rather than its page. */
+  previewApiUrl?: Maybe<Scalars['String']['output']>;
   /** Session token gating the web preview. Null when the preview runs ungated. */
   webPreviewToken?: Maybe<Scalars['String']['output']>;
   webPreviewUrl: Scalars['String']['output'];
@@ -14488,6 +14701,7 @@ export type WorkflowRun = ActivityTimelineProjectActivity & {
   __typename?: 'WorkflowRun';
   activityTimestamp: Scalars['DateTime']['output'];
   actor?: Maybe<Actor>;
+  app: App;
   /**
    * Why the server canceled this run. Null for manually canceled runs and for
    * runs canceled before the reason was recorded.
@@ -16309,11 +16523,11 @@ export type DeviceRunSessionByIdQueryVariables = Exact<{
 
 
 export type DeviceRunSessionByIdQuery = { __typename?: 'RootQuery', deviceRunSessions: { __typename?: 'DeviceRunSessionQuery', byId: { __typename?: 'DeviceRunSession', id: string, name?: string | null, tags: Array<string>, status: DeviceRunSessionStatus, type: DeviceRunSessionType, platform: AppPlatform, createdAt: any, startedAt?: any | null, finishedAt?: any | null, updatedAt: any, app: { __typename?: 'App', id: string, slug: string, ownerAccount: { __typename?: 'Account', id: string, name: string } }, artifacts: Array<{ __typename?: 'DeviceRunSessionArtifact', id: string, name: string, filename: string, downloadUrl: string, fileSizeBytes?: number | null, metadata?: any | null, createdAt: any, updatedAt: any }>, remoteConfig?:
-        | { __typename: 'AgentDeviceRunSessionRemoteConfig', agentDeviceRemoteSessionUrl: string, agentDeviceRemoteSessionToken: string, webPreviewUrl?: string | null, webPreviewToken?: string | null, egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null }
-        | { __typename: 'AppiumRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, appiumUrl: string, capabilities: any, webPreviewUrl?: string | null, webPreviewToken?: string | null }
-        | { __typename: 'ArgentRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, toolsUrl: string, toolsAuthToken?: string | null, webPreviewUrl?: string | null, webPreviewToken?: string | null }
-        | { __typename: 'ServeSimRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, previewUrl: string, previewToken?: string | null }
-        | { __typename: 'WebPreviewOnlyRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, previewUrl: string, previewToken?: string | null }
+        | { __typename: 'AgentDeviceRunSessionRemoteConfig', agentDeviceRemoteSessionUrl: string, agentDeviceRemoteSessionToken: string, webPreviewUrl?: string | null, webPreviewToken?: string | null, previewApiUrl?: string | null, egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null }
+        | { __typename: 'AppiumRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, appiumUrl: string, capabilities: any, webPreviewUrl?: string | null, webPreviewToken?: string | null, previewApiUrl?: string | null }
+        | { __typename: 'ArgentRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, toolsUrl: string, toolsAuthToken?: string | null, webPreviewUrl?: string | null, webPreviewToken?: string | null, previewApiUrl?: string | null }
+        | { __typename: 'ServeSimRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, previewUrl: string, previewToken?: string | null, previewApiUrl?: string | null }
+        | { __typename: 'WebPreviewOnlyRunSessionRemoteConfig', egressUrl?: string | null, egressToken?: string | null, egressFingerprint?: string | null, egressPort?: number | null, previewApiUrl?: string | null, previewUrl: string, previewToken?: string | null }
        | null, turtleJobRun?: { __typename?: 'JobRun', id: string, status: JobRunStatus } | null } } };
 
 export type DeviceRunSessionsByAppIdQueryVariables = Exact<{
@@ -16629,6 +16843,15 @@ export type SupabaseProjectByAppIdQueryVariables = Exact<{
 
 export type SupabaseProjectByAppIdQuery = { __typename?: 'RootQuery', app: { __typename?: 'AppQuery', byId: { __typename?: 'App', id: string, supabaseProject?: { __typename?: 'SupabaseProject', id: string, supabaseProjectRef: string, supabaseProjectName: string, supabaseProjectUrl: string, supabaseRegion: string, createdAt: any, updatedAt: any } | null } } };
 
+export type SupabaseAdvisorLintsByAppIdQueryVariables = Exact<{
+  appId: Scalars['String']['input'];
+  security: Scalars['Boolean']['input'];
+  performance: Scalars['Boolean']['input'];
+}>;
+
+
+export type SupabaseAdvisorLintsByAppIdQuery = { __typename?: 'RootQuery', app: { __typename?: 'AppQuery', byId: { __typename?: 'App', id: string, supabaseProject?: { __typename?: 'SupabaseProject', id: string, supabaseProjectRef: string, supabaseProjectName: string, supabaseProjectUrl: string, supabaseRegion: string, createdAt: any, updatedAt: any, security?: Array<{ __typename?: 'SupabaseAdvisorLint', name: string, title: string, level: SupabaseAdvisorLintLevel, description: string, detail: string, entity?: string | null, remediation?: string | null, cacheKey: string }> | null, performance?: Array<{ __typename?: 'SupabaseAdvisorLint', name: string, title: string, level: SupabaseAdvisorLintLevel, description: string, detail: string, entity?: string | null, remediation?: string | null, cacheKey: string }> | null } | null } } };
+
 export type ViewUpdateGroupInsightsQueryVariables = Exact<{
   groupId: Scalars['ID']['input'];
   timespan: InsightsTimespan;
@@ -16714,28 +16937,38 @@ export type CurrentUserQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type CurrentUserQuery = { __typename?: 'RootQuery', meActor?:
-    | { __typename: 'PartnerActor', username: string, id: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+    | { __typename: 'PartnerActor', id: string, username: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
           | { __typename?: 'SSOUser', id: string, username: string }
           | { __typename?: 'User', id: string, username: string }
          | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> }
-    | { __typename: 'Robot', firstName?: string | null, id: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+    | { __typename: 'Robot', id: string, firstName?: string | null, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
           | { __typename?: 'SSOUser', id: string, username: string }
           | { __typename?: 'User', id: string, username: string }
          | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> }
-    | { __typename: 'SSOUser', username: string, id: string, featureGates: any, isExpoAdmin: boolean, primaryAccount: { __typename?: 'Account', id: string, name: string, ownerUserActor?:
-          | { __typename?: 'SSOUser', id: string, username: string }
-          | { __typename?: 'User', id: string, username: string }
-         | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+    | { __typename: 'SSOUser', id: string, username: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
           | { __typename?: 'SSOUser', id: string, username: string }
           | { __typename?: 'User', id: string, username: string }
          | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> }
-    | { __typename: 'User', email: string, username: string, id: string, featureGates: any, isExpoAdmin: boolean, primaryAccount: { __typename?: 'Account', id: string, name: string, ownerUserActor?:
-          | { __typename?: 'SSOUser', id: string, username: string }
-          | { __typename?: 'User', id: string, username: string }
-         | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+    | { __typename: 'User', id: string, email: string, username: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
           | { __typename?: 'SSOUser', id: string, username: string }
           | { __typename?: 'User', id: string, username: string }
          | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> }
+   | null };
+
+export type CurrentUserWithPrimaryAccountQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type CurrentUserWithPrimaryAccountQuery = { __typename?: 'RootQuery', meActor?:
+    | { __typename: 'PartnerActor', id: string }
+    | { __typename: 'Robot', id: string }
+    | { __typename: 'SSOUser', id: string, primaryAccount: { __typename?: 'Account', id: string, name: string, ownerUserActor?:
+          | { __typename?: 'SSOUser', id: string, username: string }
+          | { __typename?: 'User', id: string, username: string }
+         | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } } }
+    | { __typename: 'User', id: string, primaryAccount: { __typename?: 'Account', id: string, name: string, ownerUserActor?:
+          | { __typename?: 'SSOUser', id: string, username: string }
+          | { __typename?: 'User', id: string, username: string }
+         | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } } }
    | null };
 
 export type WebhooksByAppIdQueryVariables = Exact<{
@@ -16895,6 +17128,33 @@ export type UsageMetricTotalFragment = { __typename?: 'UsageMetricTotal', id: st
 
 export type AccountUsageMetricFragment = { __typename?: 'AccountUsageMetric', id: string, serviceMetric: EasServiceMetric, metricType: UsageMetricType, value: number };
 
+type MeActorFragment_PartnerActor = { __typename: 'PartnerActor', username: string, id: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+      | { __typename?: 'SSOUser', id: string, username: string }
+      | { __typename?: 'User', id: string, username: string }
+     | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> };
+
+type MeActorFragment_Robot = { __typename: 'Robot', firstName?: string | null, id: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+      | { __typename?: 'SSOUser', id: string, username: string }
+      | { __typename?: 'User', id: string, username: string }
+     | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> };
+
+type MeActorFragment_SsoUser = { __typename: 'SSOUser', username: string, id: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+      | { __typename?: 'SSOUser', id: string, username: string }
+      | { __typename?: 'User', id: string, username: string }
+     | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> };
+
+type MeActorFragment_User = { __typename: 'User', email: string, username: string, id: string, featureGates: any, isExpoAdmin: boolean, accounts: Array<{ __typename?: 'Account', id: string, name: string, ownerUserActor?:
+      | { __typename?: 'SSOUser', id: string, username: string }
+      | { __typename?: 'User', id: string, username: string }
+     | null, viewerUserPermission: { __typename?: 'UserPermission', role: Role } }> };
+
+export type MeActorFragment =
+  | MeActorFragment_PartnerActor
+  | MeActorFragment_Robot
+  | MeActorFragment_SsoUser
+  | MeActorFragment_User
+;
+
 export type AppFragment = { __typename?: 'App', id: string, name: string, fullName: string, slug: string, ownerAccount: { __typename?: 'Account', id: string, name: string, ownerUserActor?:
       | { __typename?: 'SSOUser', id: string, username: string }
       | { __typename?: 'User', id: string, username: string }
@@ -16976,6 +17236,8 @@ export type SubmissionWithSubmittedBuildFragment = { __typename?: 'Submission', 
 export type SupabaseConnectionFragment = { __typename?: 'SupabaseConnection', id: string, supabaseOrganizationSlug: string, supabaseOrganizationName: string, createdAt: any, updatedAt: any };
 
 export type SupabaseProjectFragment = { __typename?: 'SupabaseProject', id: string, supabaseProjectRef: string, supabaseProjectName: string, supabaseProjectUrl: string, supabaseRegion: string, createdAt: any, updatedAt: any };
+
+export type SupabaseAdvisorLintFragment = { __typename?: 'SupabaseAdvisorLint', name: string, title: string, level: SupabaseAdvisorLintLevel, description: string, detail: string, entity?: string | null, remediation?: string | null, cacheKey: string };
 
 export type UpdateFragment = { __typename?: 'Update', id: string, group: string, message?: string | null, createdAt: any, platform: string, manifestFragment: string, isRollBackToEmbedded: boolean, manifestPermalink: string, gitCommitHash?: string | null, isGitWorkingTreeDirty: boolean, environment?: any | null, rolloutPercentage?: number | null, manifestHostOverride?: string | null, assetHostOverride?: string | null, runtime: { __typename?: 'Runtime', id: string, version: string }, actor?:
     | { __typename: 'PartnerActor', username: string, id: string }

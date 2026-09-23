@@ -20,6 +20,9 @@ jest.mock('../../utils/localEgress', () => ({
   startChiselServerAsync: jest.fn(),
   writeLocalEgressHandoffAsync: jest.fn(),
 }));
+jest.mock('../../utils/localEgressGuard', () => ({
+  stopLocalEgressGuardRelaysAsync: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('../../utils/remoteDeviceRunSession', () => ({
   findAvailablePortAsync: jest.fn(),
   startNgrokTunnelAsync: jest.fn(),
@@ -29,7 +32,11 @@ jest.mock('../../utils/remoteDeviceRunSession', () => ({
 
 const logger = { info: jest.fn(), warn: jest.fn() } as unknown as bunyan;
 const server = { pid: 12345, getOutput: () => '', stopAsync: jest.fn() };
-const tunnel = { url: 'https://egress.example.com', stopAsync: jest.fn() };
+const tunnel = {
+  url: 'https://egress.example.com',
+  subdomainId: 'egress-id',
+  stopAsync: jest.fn(),
+};
 
 async function start(signal?: AbortSignal): Promise<void> {
   await createStartLocalEgressBuildFunction().fn!({ logger } as BuildStepContext, {

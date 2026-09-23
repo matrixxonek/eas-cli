@@ -47,7 +47,7 @@ import { enableJsonOutput, printJsonOnlyOutput } from '../../utils/json';
 import { sleepAsync } from '../../utils/promise';
 
 const POLL_INTERVAL_MS = 5_000; // 5 seconds
-const POLL_TIMEOUT_MS = 15 * 60 * 1_000; // 15 minutes
+const STARTUP_TIMEOUT_MS = 15 * 60 * 1_000; // 15 minutes, excluding time in the queue
 const OUT_CONFIG_TYPE_VALUES = {
   Env: 'env',
   Dotenv: 'dotenv',
@@ -61,8 +61,8 @@ const APP_PLATFORM_BY_FLAG_VALUE: Record<PlatformFlagValue, AppPlatform> = {
 };
 
 export default class Simulator extends EasCommand {
-  static override hidden = true;
-  static override aliases = ['simulator:start', 'sim', 'sim:start'];
+  static override aliases = ['simulator:start', 'sim:start'];
+  static override hiddenAliases = ['sim'];
   static override description =
     '[EXPERIMENTAL] start a remote simulator session on EAS and get instructions to connect to it';
 
@@ -139,7 +139,7 @@ export default class Simulator extends EasCommand {
     })(),
     egress: Flags.option({
       description:
-        'With "local", the simulator system proxy points at this machine: HTTP(S) and WebSocket requests that honor it (WebKit, URLSession) exit from this machine and fail while the egress client is disconnected. Requests from libraries that bypass the system proxy are not covered. The egress client must keep running for the life of the session. Only supported with --platform ios.',
+        'With "local", the simulator system proxy points at this machine: HTTP(S) and WebSocket requests that honor it (WebKit, URLSession) and clients that read proxy environment variables (gRPC, libcurl) exit from this machine and fail while the egress client is disconnected. Connections that ignore both are refused inside the simulator and listed, with the library that tried, in the Logs section of the session page on expo.dev. The egress client must keep running for the life of the session. Only supported with --platform ios.',
       options: EGRESS_FLAG_VALUES,
     })(),
     'egress-allow': Flags.string({
@@ -318,11 +318,11 @@ export default class Simulator extends EasCommand {
     }
 
     const pollSpinner = ora(`⏳ Waiting for ${flags.type} session to be ready`).start();
-    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    let startupDeadline: number | undefined = Date.now() + STARTUP_TIMEOUT_MS;
     let remoteConfig: DeviceRunSessionRemoteConfig | undefined;
 
     try {
-      while (!sessionInterrupt.signal.aborted && Date.now() < deadline) {
+      while (!sessionInterrupt.signal.aborted) {
         const session = await Promise.race([
           DeviceRunSessionQuery.byIdAsync(graphqlClient, deviceRunSessionId),
           sessionInterrupt.abortPromise,
@@ -358,6 +358,17 @@ export default class Simulator extends EasCommand {
           break;
         }
 
+        if (jobRunStatus === JobRunStatus.New || jobRunStatus === JobRunStatus.InQueue) {
+          startupDeadline = undefined;
+          pollSpinner.text = '⏳ Simulator session queued or waiting for available concurrency';
+        } else {
+          startupDeadline ??= Date.now() + STARTUP_TIMEOUT_MS;
+          pollSpinner.text = `⏳ Waiting for ${flags.type} session to start`;
+          if (Date.now() >= startupDeadline) {
+            break;
+          }
+        }
+
         await sleepAsync(POLL_INTERVAL_MS, sessionInterrupt.signal);
       }
     } catch (err) {
@@ -379,11 +390,11 @@ export default class Simulator extends EasCommand {
     }
 
     if (!remoteConfig) {
-      pollSpinner.fail(`Timed out waiting for ${flags.type} session to be ready`);
+      pollSpinner.fail(`Timed out waiting for ${flags.type} session to start`);
       await ensureDeviceRunSessionStoppedSafelyAsync(graphqlClient, deviceRunSessionId);
       sessionInterrupt.dispose();
       throw new Error(
-        `Timed out after ${Math.round(POLL_TIMEOUT_MS / 1000)}s waiting for ${flags.type} session to be ready. ${link(deviceRunSessionUrl)}`
+        `Timed out after ${Math.round(STARTUP_TIMEOUT_MS / 1000)}s waiting for ${flags.type} session to start (excluding time in the queue). ${link(deviceRunSessionUrl)}`
       );
     }
 
@@ -422,6 +433,7 @@ export default class Simulator extends EasCommand {
       formatRemoteSessionInstructions(remoteConfig, flags['out-config-type'], {
         egressAllow,
         egressClientRunsInline: !nonInteractive,
+        sessionUrl: deviceRunSessionUrl,
       })
     );
     Log.newLine();

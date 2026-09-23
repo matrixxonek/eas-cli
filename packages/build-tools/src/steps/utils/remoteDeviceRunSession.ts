@@ -15,6 +15,11 @@ import { setTimeout as setTimeoutAsync } from 'node:timers/promises';
 
 import { CustomBuildContext } from '../../customBuildContext';
 import { Sentry } from '../../sentry';
+import {
+  PackageManager,
+  resolveConfiguredPackageManager,
+  resolvePackageExec,
+} from '../../utils/packageManager';
 import { sleepAsync } from '../../utils/retry';
 import { turtleFetch } from '../../utils/turtleFetch';
 import { SERVE_SIM_STATE_DIR, readServeSimServersAsync } from './serveSimMetricsRecorder';
@@ -22,6 +27,9 @@ import { SERVE_SIM_STATE_DIR, readServeSimServersAsync } from './serveSimMetrics
 const XCODE_DEVELOPER_DIR = '/Applications/Xcode.app/Contents/Developer';
 const WEB_PREVIEW_HOST = '127.0.0.1';
 const SERVE_SIM_PACKAGE_NAME = '@expo/serve-sim';
+// Pinned while H.264 is known to stall at larger encode sizes without recovering.
+// Passing this explicitly also overrides serve-sim's own default H.264 cap, so raising it
+// loses that guard too.
 const SERVE_SIM_MAX_DIMENSION = '960';
 const SERVE_SIM_MJPEG_QUALITY = '0.55';
 const SERVE_SIM_VIDEO_BITRATE = '6000000';
@@ -549,7 +557,7 @@ async function stopDetachedProcessAsync(pid: number | undefined): Promise<void> 
   }
   try {
     // spawnDetached creates a dedicated process group. Signaling the group also
-    // terminates npx/bunx descendants instead of leaving the actual daemon alive.
+    // terminates npx/bun descendants instead of leaving the actual daemon alive.
     process.kill(-pid, 'SIGTERM');
   } catch {
     try {
@@ -612,6 +620,18 @@ export function spawnDetached({
   };
 }
 
+export function websiteOrigin(env: BuildStepEnv): string {
+  return env.EXPO_LOCAL
+    ? 'https://expo.test'
+    : env.EXPO_STAGING
+      ? 'https://staging.expo.dev'
+      : 'https://expo.dev';
+}
+
+export function simulatorPreviewPageUrl(env: BuildStepEnv, subdomainId: string): string {
+  return new URL(`/simulator-preview/${subdomainId}`, websiteOrigin(env)).toString();
+}
+
 export function metricsCorsOriginToServeSimArgs(env: BuildStepEnv): string[] {
   const origin = env.EAS_SIMULATOR_METRICS_CORS_ORIGIN;
   if (!origin) {
@@ -639,15 +659,18 @@ export function createServeSimArgs({
   port,
   turnArgs = [],
   metricsCorsArgs = [],
+  frameAncestorArgs = [],
+  shareUrl,
   packageVersion,
 }: {
   port: number;
   turnArgs?: string[];
   metricsCorsArgs?: string[];
+  frameAncestorArgs?: string[];
+  shareUrl?: string;
   packageVersion?: string;
 }): string[] {
   return [
-    '--yes',
     createServeSimPackageSpec(packageVersion),
     '--port',
     String(port),
@@ -657,7 +680,7 @@ export function createServeSimArgs({
     '--transport',
     'webrtc',
     '--webrtc-codec',
-    'vp8',
+    'h264',
     '--max-dimension',
     SERVE_SIM_MAX_DIMENSION,
     '--mjpeg-quality',
@@ -668,6 +691,8 @@ export function createServeSimArgs({
     SERVE_SIM_VIDEO_FPS,
     ...turnArgs,
     ...metricsCorsArgs,
+    ...frameAncestorArgs,
+    ...(shareUrl ? ['--share-url', shareUrl] : []),
   ];
 }
 
@@ -681,7 +706,6 @@ export function createExpoDeviceHubArgs({
   packageVersion?: string;
 }): string[] {
   return [
-    '--yes',
     createExpoDeviceHubPackageSpec(packageVersion),
     '--port',
     String(port),
@@ -771,7 +795,8 @@ export async function waitForWebPreviewReadyAsync({
 }
 
 export type DeviceWebPreviewHandle = {
-  previewUrl: string;
+  previewPageUrl: string;
+  apiUrl: string;
   /** Session token gating the preview. Only serve-sim mints one. */
   previewToken?: string;
   stopAsync: () => Promise<void>;
@@ -797,16 +822,24 @@ async function startWebPreviewWithTunnelAsync(
     timeoutMs: number;
     serverName: string;
     packageSpec: string;
-    createArgs: (port: number, turnArgs: string[]) => string[];
+    createArgs: (port: number, turnArgs: string[], previewPageUrl: string) => string[];
     readPreviewTokenAsync?: (device: string) => Promise<string>;
   }
 ): Promise<DeviceWebPreviewHandle> {
+  const subdomainId = randomBytes(16).toString('hex');
+  const previewPageUrl = simulatorPreviewPageUrl(env, subdomainId);
   const port = await findAvailablePortAsync();
-  logger.info(`Launching ${packageSpec} on ${WEB_PREVIEW_HOST}:${port}.`);
   const turnArgs = await fetchWebPreviewTurnArgsAsync(ctx, { env, logger });
+  const previewExec = resolvePackageExec(
+    resolveConfiguredPackageManager(env, PackageManager.NPM),
+    createArgs(port, turnArgs, previewPageUrl)
+  );
+  logger.info(
+    `Launching ${packageSpec} on ${WEB_PREVIEW_HOST}:${port} via ${previewExec.command}.`
+  );
   const previewServer = spawnDetached({
-    command: 'npx',
-    args: createArgs(port, turnArgs),
+    command: previewExec.command,
+    args: previewExec.args,
     env,
   });
 
@@ -822,12 +855,14 @@ async function startWebPreviewWithTunnelAsync(
     const tunnel = await startNgrokTunnelAsync({
       port,
       subdomainPrefix: 'web-preview',
+      subdomainId,
       baseDomain,
       authtoken: getNgrokAuthtokenOrThrow(env),
       logger,
     });
     return {
-      previewUrl: tunnel.url,
+      previewPageUrl,
+      apiUrl: tunnel.url,
       previewToken,
       stopAsync: async () => {
         const results = await Promise.allSettled([tunnel.stopAsync(), previewServer.stopAsync()]);
@@ -869,6 +904,7 @@ export async function startServeSimWithTunnelAsync(
   }
 ): Promise<ServeSimPreviewHandle> {
   const metricsCorsArgs = metricsCorsOriginToServeSimArgs(env);
+  const frameAncestorArgs = ['--frame-ancestor', websiteOrigin(env)];
   return await startWebPreviewWithTunnelAsync(ctx, {
     baseDomain,
     env,
@@ -876,8 +912,15 @@ export async function startServeSimWithTunnelAsync(
     timeoutMs,
     serverName: 'serve-sim',
     packageSpec: createServeSimPackageSpec(packageVersion),
-    createArgs: (port, turnArgs) =>
-      createServeSimArgs({ port, turnArgs, metricsCorsArgs, packageVersion }),
+    createArgs: (port, turnArgs, previewPageUrl) =>
+      createServeSimArgs({
+        port,
+        turnArgs,
+        metricsCorsArgs,
+        frameAncestorArgs,
+        shareUrl: previewPageUrl,
+        packageVersion,
+      }),
     readPreviewTokenAsync: async device => {
       const previewToken = await readServeSimPreviewTokenAsync(device);
       if (!previewToken) {
@@ -951,12 +994,14 @@ export async function startDeviceWebPreviewWithTunnelAsync(
 
 export type NgrokTunnelHandle = {
   url: string;
+  subdomainId: string;
   stopAsync: () => Promise<void>;
 };
 
 export async function startNgrokTunnelAsync({
   port,
   subdomainPrefix,
+  subdomainId: subdomainIdArg,
   baseDomain,
   authtoken,
   rewriteHostHeader,
@@ -964,12 +1009,14 @@ export async function startNgrokTunnelAsync({
 }: {
   port: number;
   subdomainPrefix: string;
+  subdomainId?: string;
   baseDomain: string;
   authtoken: string;
   rewriteHostHeader?: boolean;
   logger: bunyan;
 }): Promise<NgrokTunnelHandle> {
-  const domain = `${subdomainPrefix}-${randomBytes(16).toString('hex')}.${baseDomain}`;
+  const subdomainId = subdomainIdArg ?? randomBytes(16).toString('hex');
+  const domain = `${subdomainPrefix}-${subdomainId}.${baseDomain}`;
   logger.info(`Starting ngrok tunnel ${domain} -> http://localhost:${port}.`);
   // Run the ngrok agent in-process via the SDK; it keeps the session alive until
   // the process exits, and the step blocks forever to hold it open.
@@ -987,6 +1034,7 @@ export async function startNgrokTunnelAsync({
   let stopped = false;
   return {
     url,
+    subdomainId,
     stopAsync: async () => {
       if (stopped) {
         return;

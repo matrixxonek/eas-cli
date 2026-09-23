@@ -21,6 +21,11 @@ import {
 } from '../utils/localEgressSession';
 import { AndroidEmulatorUtils } from '../../utils/AndroidEmulatorUtils';
 import { IosSimulatorUtils } from '../../utils/IosSimulatorUtils';
+import {
+  PackageManager,
+  resolveConfiguredPackageManager,
+  resolvePackageAdd,
+} from '../../utils/packageManager';
 import { sleepAsync } from '../../utils/retry';
 import { turtleFetch } from '../../utils/turtleFetch';
 import { startAppiumEventCollectionAsync } from '../utils/appiumEvents';
@@ -153,7 +158,8 @@ export function createStartAppiumRemoteSessionBuildFunction(
               'appium:automationName': device.automationName,
               'appium:udid': device.udid,
             },
-            webPreviewUrl: webPreview.previewUrl,
+            webPreviewUrl: webPreview.previewPageUrl,
+            previewApiUrl: webPreview.apiUrl,
             ...(webPreview.previewToken ? { webPreviewToken: webPreview.previewToken } : {}),
           },
           logger,
@@ -198,7 +204,7 @@ export function resolveAppium3VersionSpec(packageVersion: string | undefined): s
   return versionSpec;
 }
 
-type AppiumDevice = {
+export type AppiumDevice = {
   platformName: 'iOS' | 'Android';
   automationName: 'XCUITest' | 'UiAutomator2';
   driverName: 'xcuitest' | 'uiautomator2';
@@ -247,7 +253,7 @@ export async function resolveAppiumDeviceAsync({
   }
 }
 
-async function installAppiumAsync({
+export async function installAppiumAsync({
   versionSpec,
   driverName,
   env,
@@ -265,9 +271,14 @@ async function installAppiumAsync({
   );
   const appiumEnv: BuildStepEnv = { ...env, APPIUM_HOME: appiumHome };
   const appiumBinPath = path.join(appiumHome, 'node_modules', '.bin', 'appium');
+  const add = resolvePackageAdd(
+    resolveConfiguredPackageManager(env, PackageManager.NPM),
+    `appium@${versionSpec}`
+  );
 
-  logger.info(`Installing appium@${versionSpec}.`);
-  await spawn('npm', ['install', '--prefix', appiumHome, `appium@${versionSpec}`], {
+  logger.info(`Installing appium@${versionSpec} with ${add.command}.`);
+  await spawn(add.command, add.args, {
+    cwd: appiumHome,
     env: appiumEnv,
     logger,
   });
